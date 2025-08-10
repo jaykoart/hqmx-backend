@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>YouTube Data API Test</title>
+</head>
+<body>
+    <h1>YouTube Data API 테스트</h1>
+    <input type="text" id="videoId" placeholder="YouTube 비디오 ID (예: dQw4w9WgXcQ)" style="width: 300px;">
+    <button onclick="testYouTubeAPI()">API 테스트</button>
+    <div id="result"></div>
+
+    <script>
+        async function testYouTubeAPI() {
+            const videoId = document.getElementById('videoId').value;
+            const resultDiv = document.getElementById('result');
+            
+            if (!videoId) {
+                resultDiv.innerHTML = '<p style="color: red;">비디오 ID를 입력하세요</p>';
+                return;
+            }
+            
+            try {
+                // YouTube Data API 호출 (API 키 없이도 일부 정보 확인 가능)
+                const response = await fetch(`https://www.googleapis.com/youtube/v3/videos?id=${videoId}&part=snippet,statistics`);
+                const data = await response.json();
+                
+                if (data.items && data.items.length > 0) {
+                    const video = data.items[0];
+                    resultDiv.innerHTML = `
+                        <h3>✅ 분석 성공</h3>
+                        <p><strong>제목:</strong> ${video.snippet.title}</p>
+                        <p><strong>채널:</strong> ${video.snippet.channelTitle}</p>
+                        <p><strong>조회수:</strong> ${video.statistics.viewCount}</p>
+                        <p><strong>업로드 날짜:</strong> ${video.snippet.publishedAt}</p>
+                        <hr>
+                        <p style="color: orange;"><strong>⚠️ 다운로드 불가:</strong> YouTube Data API는 메타데이터만 제공하고, 실제 다운로드 링크는 제공하지 않습니다.</p>
+                    `;
+                } else {
+                    resultDiv.innerHTML = '<p style="color: red;">비디오를 찾을 수 없습니다</p>';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<p style="color: red;">오류: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>

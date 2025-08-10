@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>YouTube Direct Access Test</title>
+</head>
+<body>
+    <h1>브라우저에서 직접 YouTube 접근 테스트</h1>
+    <button onclick="testYouTubeAccess()">YouTube 접근 테스트</button>
+    <div id="result"></div>
+
+    <script>
+        async function testYouTubeAccess() {
+            const resultDiv = document.getElementById('result');
+            
+            try {
+                // YouTube 메인 페이지 접근 테스트
+                const response = await fetch('https://www.youtube.com', {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                
+                resultDiv.innerHTML = '<p style="color: green;">✅ 성공: YouTube에 직접 접근 가능</p>';
+            } catch (error) {
+                resultDiv.innerHTML = `<p style="color: red;">❌ 실패: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>
