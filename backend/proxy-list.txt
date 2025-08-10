@@ -1,0 +1,18 @@
+# 무료 프록시 목록 (테스트용)
+# 실제 사용 시에는 유료 Residential 프록시 권장
+
+# 무료 프록시 예시 (실제 작동하지 않을 수 있음)
+http://proxy1.com:8080
+http://proxy2.com:8080
+http://proxy3.com:8080
+
+# 유료 Residential 프록시 예시 (실제 작동)
+# http://user:pass@proxy1.brightdata.com:22225
+# http://user:pass@proxy2.brightdata.com:22225
+
+# 프록시 설정 방법:
+# 1. .env 파일에 추가:
+# RESIDENTIAL_PROXIES=http://proxy1.com:8080,http://proxy2.com:8080
+# 
+# 2. 서버 재시작:
+# docker-compose restart
