@@ -459,7 +459,110 @@ const API_BASE_URL = window.location.hostname === 'localhost' ? 'http://localhos
         
         showStatus('🔥 SaveFrom 방식 분석 시작 (yt-dlp 없이)...', 'info');
         
-        // 🎯 1차 시도: SaveFrom 스타일 분석
+        // 🚀 1차 시도: 궁극의 봇 우회 분석
+        try {
+            showStatus('🚀 궁극의 봇 우회 시스템 실행 중...', 'info');
+            const response = await fetch(`${API_BASE_URL}/ultimate-bot-bypass`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Accept-Language': navigator.language || 'ko-KR',
+                    'User-Agent': navigator.userAgent
+                },
+                body: JSON.stringify({ 
+                    url, 
+                    bypassLevel: 'ultimate',
+                    useIPRotation: true,
+                    simulateHuman: true
+                })
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                if (result.success) {
+                    console.log('✅ Ultimate bot bypass succeeded:', result);
+                    showStatus(`✅ 궁극의 우회 분석 성공! (기법: ${result.techniques_used?.join(', ')})`, 'success');
+                    return result;
+                }
+            }
+            throw new Error('Ultimate bypass failed');
+        } catch (ultimateError) {
+            console.warn('Ultimate bot bypass failed, trying user-mimic:', ultimateError);
+            showStatus('⚠️ 궁극의 우회 실패, 사용자 모방 분석 시도 중...', 'warning');
+        }
+
+        // 🎭 2차 시도: 사용자 정보 활용 고급 분석
+        try {
+            return await performUserMimicAnalysis(url);
+        } catch (userMimicError) {
+            console.warn('User-mimic analysis failed, trying advanced multi-vector:', userMimicError);
+            showStatus('⚠️ 사용자 모방 실패, 다중 벡터 분석 시도 중...', 'warning');
+        }
+
+        // 🎯 3차 시도: 고급 다중 벡터 분석
+        try {
+            showStatus('🎯 고급 다중 벡터 분석 실행 중...', 'info');
+            const response = await fetch(`${API_BASE_URL}/advanced-multi-vector`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Accept-Language': navigator.language || 'ko-KR',
+                    'User-Agent': navigator.userAgent
+                },
+                body: JSON.stringify({ 
+                    url,
+                    bypassLevel: 'advanced',
+                    useIPRotation: true,
+                    maxRetries: 3
+                })
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                if (result.success) {
+                    console.log('✅ Advanced multi-vector succeeded:', result);
+                    showStatus(`✅ 다중 벡터 분석 성공! (응답시간: ${result.response_time}ms)`, 'success');
+                    return result;
+                }
+            }
+            throw new Error('Advanced multi-vector failed');
+        } catch (multiVectorError) {
+            console.warn('Advanced multi-vector failed, trying stealth:', multiVectorError);
+            showStatus('⚠️ 다중 벡터 실패, 스텔스 모드 시도 중...', 'warning');
+        }
+
+        // 🎭 4차 시도: 스텔스 모드 분석
+        try {
+            showStatus('🎭 최고 수준 스텔스 분석 실행 중...', 'info');
+            const response = await fetch(`${API_BASE_URL}/stealth-analyze`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Accept-Language': navigator.language || 'ko-KR',
+                    'User-Agent': navigator.userAgent
+                },
+                body: JSON.stringify({ 
+                    url,
+                    stealthLevel: 'maximum',
+                    antiDetection: true
+                })
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                if (result.success) {
+                    console.log('✅ Stealth analysis succeeded:', result);
+                    showStatus(`✅ 스텔스 분석 성공! (보안 수준: 최고)`, 'success');
+                    return result;
+                }
+            }
+            throw new Error('Stealth analysis failed');
+        } catch (stealthError) {
+            console.warn('Stealth analysis failed, trying standard SaveFrom:', stealthError);
+            showStatus('⚠️ 스텔스 분석 실패, 표준 SaveFrom 방식 시도 중...', 'warning');
+        }
+        
+        // 🎯 2차 시도: 표준 SaveFrom 스타일 분석
         try {
             const response = await fetch(`${API_BASE_URL}/savefrom-analyze`, {
                 method: 'POST',
@@ -525,6 +628,70 @@ const API_BASE_URL = window.location.hostname === 'localhost' ? 'http://localhos
         
         console.log('✅ ULTIMATE analysis completed:', data);
         return data;
+    }
+
+    // --- 🎭 사용자 정보 활용 고급 분석 ---
+    async function performUserMimicAnalysis(url) {
+        console.log('🎭 Starting user-mimic analysis for:', url);
+        
+        showStatus('🎭 사용자 프로필 수집 중...', 'info');
+        
+        // 고급 사용자 프로필 수집
+        let userProfile = null;
+        if (window.userProfileCollector) {
+            console.log('🎭 Collecting comprehensive user profile...');
+            userProfile = await window.userProfileCollector.updateProfile();
+            console.log('✅ User profile collected:', {
+                platform: userProfile.platform,
+                language: userProfile.language,
+                screen: `${userProfile.screen.width}x${userProfile.screen.height}`,
+                timezone: userProfile.timezone,
+                fingerprint: !!userProfile.fingerprint.canvas
+            });
+        }
+
+        const requestData = {
+            url: url,
+            userProfile: userProfile
+        };
+
+        showStatus('🔍 SaveFrom 패턴으로 YouTube 접근 중...', 'info');
+
+        const response = await fetch(`${API_BASE_URL}/user-mimic-analyze`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept-Language': userProfile?.language || navigator.language,
+                'User-Agent': userProfile?.userAgent || navigator.userAgent
+            },
+            body: JSON.stringify(requestData)
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || `User-mimic API error: ${response.status}`);
+        }
+
+        const result = await response.json();
+        
+        if (result.success) {
+            console.log('✅ User-mimic analysis succeeded:', result);
+            
+            // 성공 메시지에 사용된 프로필 정보 포함
+            const profileInfo = result.profile_used ? 
+                `(${result.profile_used.platform}, ${result.profile_used.language})` : '';
+            
+            showStatus(`✅ 고급 분석 성공! ${profileInfo} - 비디오: ${result.video_formats?.length || 0}개, 오디오: ${result.audio_formats?.length || 0}개`, 'success');
+            
+            // Terms of Service 준수 알림
+            if (result.compliance_note) {
+                console.log('📜 Compliance:', result.compliance_note);
+            }
+            
+            return result;
+        } else {
+            throw new Error(result.message || 'User-mimic analysis failed');
+        }
     }
 
     // --- UTILITY: User IP Analysis (백업용) ---

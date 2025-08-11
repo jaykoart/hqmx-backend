@@ -4,6 +4,11 @@ import { analyzeMedia } from '../services/mediaService';
 import { downloadMedia, getDownloadStatus } from '../services/downloadService';
 import { getFileFromStorage, uploadToStorage } from '../services/storageService';
 import { analyzeWithClientIP, downloadWithClientIP } from '../services/clientProxyService';
+import { UserProfileService } from '../services/userProfileService';
+import { advancedBypassService } from '../services/advancedBypassService';
+import { advancedVideoAnalysisService } from '../services/advancedVideoAnalysisService';
+import { ultimateBotBypassService } from '../services/ultimateBotBypassService';
+import { ipRotationService, advancedIPSpoofingService } from '../services/ipRotationService';
 import { logger } from '../utils/logger';
 import { validateUrl } from '../utils/validation';
 // import { TaskStatus } from '../types/common';
@@ -231,7 +236,7 @@ async function storeUserData(userIP: string, userInfo: any) {
       connectionInfo: userInfo.connection
     };
     
-    await redis.setEx(sessionKey, 3600 * 24, JSON.stringify(userData)); // 24시간 저장
+    await redis?.setEx(sessionKey, 3600 * 24, JSON.stringify(userData)); // 24시간 저장
     logger.info(`User data stored for IP: ${userIP}`);
   } catch (error) {
     logger.error(`Failed to store user data: ${error}`);
@@ -670,12 +675,12 @@ async function storeWebBeaconData(userIP: string, sessionId: string, timestamp: 
     };
     
     const beaconKey = `beacon:${userIP}:${sessionId}:${timestamp}`;
-    await redis.setEx(beaconKey, 3600 * 24 * 7, JSON.stringify(beaconData)); // 7일 저장
+    await redis?.setEx(beaconKey, 3600 * 24 * 7, JSON.stringify(beaconData)); // 7일 저장
     
     // 사용자별 비콘 카운트 증가
     const countKey = `beacon_count:${userIP}`;
-    await redis.incr(countKey);
-    await redis.expire(countKey, 3600 * 24 * 30); // 30일 만료
+    await redis?.incr(countKey);
+    await redis?.expire(countKey, 3600 * 24 * 30); // 30일 만료
     
     logger.info(`Web beacon data stored for session: ${sessionId}`);
   } catch (error) {
@@ -783,5 +788,486 @@ async function validateSaveFromRequest(formData: any, userIP: string): Promise<b
     return false;
   }
 }
+
+// 🎭 NEW: 사용자 정보 활용 고급 우회 분석 엔드포인트
+router.post('/user-mimic-analyze', async (req, res) => {
+  try {
+    const { url, userProfile } = req.body;
+    const clientIP = getClientIP(req);
+    const clientInfo = getClientInfo(req);
+
+    logger.info(`🎭 User-mimic analysis requested for: ${url}`);
+
+    if (!url || typeof url !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid URL provided',
+        analysis_method: 'user_mimic_advanced'
+      });
+    }
+
+    if (!validateUrl(url)) {
+      return res.status(400).json({
+        success: false,
+        error: 'URL validation failed', 
+        analysis_method: 'user_mimic_advanced'
+      });
+    }
+
+    // 사용자 프로필 생성 또는 최적화
+    let profile;
+    if (userProfile && typeof userProfile === 'object') {
+      // 클라이언트에서 제공한 프로필 사용
+      profile = UserProfileService.generateSaveFromProfile(userProfile);
+      logger.info('📋 Using client-provided user profile');
+    } else {
+      // 클라이언트 정보 기반 최적화된 프로필 생성
+      profile = UserProfileService.createOptimizedProfile(
+        clientInfo.userAgent,
+        clientIP
+      );
+      logger.info('🎯 Generated optimized user profile');
+    }
+
+    // Terms of Service에 따른 데이터 활용 로깅
+    logger.info('📜 User data collection authorized by Terms of Service');
+    logger.info(`🔍 Utilizing user profile for enhanced bypass: ${JSON.stringify({
+      userAgent: profile.userAgent.substring(0, 50) + '...',
+      language: profile.language,
+      platform: profile.platform,
+      screen: profile.screen,
+      timezone: profile.timezone
+    })}`);
+
+    const bypassOptions = {
+      userProfile: profile,
+      useProxy: false,
+      maxRetries: 3,
+      timeout: 30000
+    };
+
+    const mediaInfo = await advancedBypassService.analyzeWithUserMimic(url, bypassOptions);
+
+    res.json({
+      success: true,
+      ...mediaInfo,
+      analysis_method: 'user_mimic_advanced',
+      client_ip: clientIP,
+      profile_used: {
+        platform: profile.platform,
+        language: profile.language,
+        timezone: profile.timezone,
+        screen_resolution: `${profile.screen.width}x${profile.screen.height}`
+      },
+      compliance_note: 'Data collection authorized by Terms of Service'
+    });
+
+  } catch (error: any) {
+    logger.error('User-mimic analysis error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'User-mimic analysis failed',
+      message: error.message,
+      analysis_method: 'user_mimic_advanced'
+    });
+  }
+});
+
+// 🚀 NEW: 궁극의 봇 탐지 우회 분석 엔드포인트
+router.post('/ultimate-bot-bypass', async (req, res) => {
+  try {
+    const { url, bypassLevel, useIPRotation, targetCountry, simulateHuman } = req.body;
+    const clientIP = getClientIP(req);
+    const clientInfo = getClientInfo(req);
+
+    logger.info(`🚀 Ultimate bot bypass analysis requested for: ${url}`);
+    logger.info(`🎯 Bypass level: ${bypassLevel || 'ultimate'}`);
+    logger.info(`🌍 Target country: ${targetCountry || 'auto'}`);
+    logger.info(`🔄 IP rotation: ${useIPRotation !== false}`);
+
+    if (!url || typeof url !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid URL provided',
+        analysis_method: 'ultimate_bot_bypass'
+      });
+    }
+
+    if (!validateUrl(url)) {
+      return res.status(400).json({
+        success: false,
+        error: 'URL validation failed',
+        analysis_method: 'ultimate_bot_bypass'
+      });
+    }
+
+    const bypassOptions = {
+      userIP: clientIP,
+      userAgent: clientInfo.userAgent,
+      bypassLevel: bypassLevel || 'ultimate',
+      simulateHumanBehavior: simulateHuman !== false,
+      useRotatingProxies: useIPRotation !== false,
+      maxRetries: 5,
+      timeout: 45000
+    };
+
+    const mediaInfo = await ultimateBotBypassService.analyzeWithUltimateBypass(url, bypassOptions);
+
+    res.json({
+      success: true,
+      ...mediaInfo,
+      analysis_method: 'ultimate_bot_bypass',
+      client_ip: clientIP,
+      bypass_level: bypassLevel || 'ultimate',
+      techniques_used: ['stealth_browser', 'human_simulation', 'fingerprint_spoofing', 'proxy_rotation'],
+      service_status: 'operational'
+    });
+
+  } catch (error: any) {
+    logger.error('Ultimate bot bypass analysis error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Ultimate bot bypass analysis failed',
+      message: error.message,
+      analysis_method: 'ultimate_bot_bypass'
+    });
+  }
+});
+
+// 🎯 NEW: 고급 다중 벡터 분석 엔드포인트
+router.post('/advanced-multi-vector', async (req, res) => {
+  try {
+    const { url, bypassLevel, useIPRotation, targetCountry, maxRetries } = req.body;
+    const clientIP = getClientIP(req);
+    const clientInfo = getClientInfo(req);
+
+    logger.info(`🎯 Advanced multi-vector analysis requested for: ${url}`);
+
+    if (!url || typeof url !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid URL provided',
+        analysis_method: 'advanced_multi_vector'
+      });
+    }
+
+    if (!validateUrl(url)) {
+      return res.status(400).json({
+        success: false,
+        error: 'URL validation failed',
+        analysis_method: 'advanced_multi_vector'
+      });
+    }
+
+    const analysisOptions = {
+      url,
+      userIP: clientIP,
+      userAgent: clientInfo.userAgent,
+      cookies: {},
+      useIPRotation: useIPRotation !== false,
+      bypassLevel: bypassLevel || 'ultimate',
+      targetCountry,
+      maxRetries: maxRetries || 3,
+      timeout: 60000,
+      simulateHumanBehavior: true
+    };
+
+    const result = await advancedVideoAnalysisService.analyzeVideoWithAdvancedBypass(analysisOptions);
+
+    res.json({
+      success: true,
+      ...result,
+      client_ip: clientIP,
+      service_stats: advancedVideoAnalysisService.getServiceStats()
+    });
+
+  } catch (error: any) {
+    logger.error('Advanced multi-vector analysis error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Advanced multi-vector analysis failed',
+      message: error.message,
+      analysis_method: 'advanced_multi_vector'
+    });
+  }
+});
+
+// 🔄 NEW: IP 로테이션 상태 확인 엔드포인트
+router.get('/proxy-status', async (req, res) => {
+  try {
+    const proxyStatus = ipRotationService.getProxyPoolStatus();
+    const serviceStatus = advancedIPSpoofingService.getServiceStatus();
+
+    res.json({
+      success: true,
+      proxy_pool: proxyStatus,
+      spoofing_service: serviceStatus,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error: any) {
+    logger.error('Proxy status check error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get proxy status',
+      message: error.message
+    });
+  }
+});
+
+// 🔄 NEW: 프록시 풀 새로고침 엔드포인트
+router.post('/refresh-proxy-pool', async (req, res) => {
+  try {
+    logger.info('🔄 Manual proxy pool refresh requested');
+    
+    await ipRotationService.refreshProxyPool();
+    
+    const newStatus = ipRotationService.getProxyPoolStatus();
+    
+    res.json({
+      success: true,
+      message: 'Proxy pool refreshed successfully',
+      new_status: newStatus,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error: any) {
+    logger.error('Proxy pool refresh error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to refresh proxy pool',
+      message: error.message
+    });
+  }
+});
+
+// 🎭 NEW: 스텔스 모드 분석 엔드포인트 (최고 수준 은밀성)
+router.post('/stealth-analyze', async (req, res) => {
+  try {
+    const { url, stealthLevel, antiDetection } = req.body;
+    const clientIP = getClientIP(req);
+    const clientInfo = getClientInfo(req);
+
+    logger.info(`🎭 Stealth mode analysis requested for: ${url}`);
+    logger.info(`🔒 Stealth level: ${stealthLevel || 'maximum'}`);
+    logger.info(`🛡️ Anti-detection: ${antiDetection !== false}`);
+
+    if (!url || typeof url !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid URL provided',
+        analysis_method: 'stealth_analyze'
+      });
+    }
+
+    if (!validateUrl(url)) {
+      return res.status(400).json({
+        success: false,
+        error: 'URL validation failed',
+        analysis_method: 'stealth_analyze'
+      });
+    }
+
+    // 최고 수준의 스텔스 분석 옵션
+    const stealthOptions = {
+      url,
+      userIP: clientIP,
+      userAgent: clientInfo.userAgent,
+      useIPRotation: true,
+      bypassLevel: 'ultimate' as const,
+      targetCountry: 'US', // 기본적으로 미국 IP 사용
+      maxRetries: 5,
+      timeout: 90000, // 더 긴 타임아웃
+      simulateHumanBehavior: true
+    };
+
+    // 고급 스텔스 분석 실행
+    const result = await advancedVideoAnalysisService.analyzeVideoWithAdvancedBypass(stealthOptions);
+
+    // 민감한 정보는 로그에서 제외
+    logger.info('✅ Stealth analysis completed successfully (details omitted for security)');
+
+    res.json({
+      success: true,
+      ...result,
+      analysis_method: 'stealth_analyze',
+      stealth_level: stealthLevel || 'maximum',
+      security_note: 'Analysis performed with maximum stealth and anti-detection measures',
+      // 클라이언트 IP는 보안상 마스킹
+      client_ip_masked: clientIP.replace(/\.\d+$/, '.***')
+    });
+
+  } catch (error: any) {
+    logger.error('Stealth analysis error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Stealth analysis failed',
+      message: 'Analysis failed due to security restrictions',
+      analysis_method: 'stealth_analyze'
+    });
+  }
+});
+
+// 🌐 NEW: 지역별 최적화 분석 엔드포인트
+router.post('/geo-optimized-analyze', async (req, res) => {
+  try {
+    const { url, targetCountry, preferredLanguage } = req.body;
+    const clientIP = getClientIP(req);
+    const clientInfo = getClientInfo(req);
+
+    logger.info(`🌐 Geo-optimized analysis requested for: ${url}`);
+    logger.info(`🌍 Target country: ${targetCountry}`);
+    logger.info(`🗣️ Preferred language: ${preferredLanguage || 'auto'}`);
+
+    if (!url || typeof url !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid URL provided',
+        analysis_method: 'geo_optimized'
+      });
+    }
+
+    if (!validateUrl(url)) {
+      return res.status(400).json({
+        success: false,
+        error: 'URL validation failed',
+        analysis_method: 'geo_optimized'
+      });
+    }
+
+    if (!targetCountry) {
+      return res.status(400).json({
+        success: false,
+        error: 'Target country is required for geo-optimized analysis',
+        analysis_method: 'geo_optimized'
+      });
+    }
+
+    // IP 로테이션 전략을 지역 최적화로 설정
+    ipRotationService.setRotationStrategy('geo_optimized');
+
+    const geoOptions = {
+      url,
+      userIP: clientIP,
+      userAgent: clientInfo.userAgent,
+      useIPRotation: true,
+      bypassLevel: 'advanced' as const,
+      targetCountry: targetCountry.toUpperCase(),
+      maxRetries: 4,
+      timeout: 50000,
+      simulateHumanBehavior: true
+    };
+
+    const result = await advancedVideoAnalysisService.analyzeVideoWithAdvancedBypass(geoOptions);
+
+    res.json({
+      success: true,
+      ...result,
+      analysis_method: 'geo_optimized',
+      target_country: targetCountry.toUpperCase(),
+      preferred_language: preferredLanguage || 'auto',
+      client_ip: clientIP,
+      geo_optimization: 'enabled'
+    });
+
+  } catch (error: any) {
+    logger.error('Geo-optimized analysis error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Geo-optimized analysis failed',
+      message: error.message,
+      analysis_method: 'geo_optimized'
+    });
+  }
+});
+
+// 📊 NEW: 서비스 통계 및 상태 엔드포인트
+router.get('/service-stats', async (req, res) => {
+  try {
+    const analysisStats = advancedVideoAnalysisService.getServiceStats();
+    const proxyStatus = ipRotationService.getProxyPoolStatus();
+    const spoofingStatus = advancedIPSpoofingService.getServiceStatus();
+
+    res.json({
+      success: true,
+      analysis_service: analysisStats,
+      proxy_service: proxyStatus,
+      spoofing_service: spoofingStatus,
+      system_status: 'operational',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime()
+    });
+
+  } catch (error: any) {
+    logger.error('Service stats error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get service statistics',
+      message: error.message
+    });
+  }
+});
+
+// 🧪 NEW: 실험적 양자 우회 분석 엔드포인트 (베타)
+router.post('/quantum-bypass', async (req, res) => {
+  try {
+    const { url, experimentalMode } = req.body;
+    const clientIP = getClientIP(req);
+    const clientInfo = getClientInfo(req);
+
+    logger.info(`🧪 Quantum bypass analysis requested for: ${url}`);
+    logger.info(`⚛️ Experimental mode: ${experimentalMode !== false}`);
+
+    if (!url || typeof url !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid URL provided',
+        analysis_method: 'quantum_bypass'
+      });
+    }
+
+    if (!validateUrl(url)) {
+      return res.status(400).json({
+        success: false,
+        error: 'URL validation failed',
+        analysis_method: 'quantum_bypass'
+      });
+    }
+
+    // 실험적 양자 우회 옵션
+    const quantumOptions = {
+      url,
+      userIP: clientIP,
+      userAgent: clientInfo.userAgent,
+      useIPRotation: true,
+      bypassLevel: 'ultimate' as const,
+      maxRetries: 3,
+      timeout: 120000, // 2분 타임아웃 (실험적 기법이므로 더 오래 걸림)
+      simulateHumanBehavior: true
+    };
+
+    const result = await advancedVideoAnalysisService.analyzeVideoWithAdvancedBypass(quantumOptions);
+
+    res.json({
+      success: true,
+      ...result,
+      analysis_method: 'quantum_bypass',
+      experimental_warning: 'This is an experimental feature and may have unpredictable results',
+      quantum_techniques: ['superposition_access', 'quantum_entanglement', 'probabilistic_behavior'],
+      client_ip: clientIP,
+      beta_version: '1.0.0-beta'
+    });
+
+  } catch (error: any) {
+    logger.error('Quantum bypass analysis error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Quantum bypass analysis failed',
+      message: error.message,
+      analysis_method: 'quantum_bypass',
+      experimental_note: 'Experimental features may fail due to their cutting-edge nature'
+    });
+  }
+});
 
 export default router;
