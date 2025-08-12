@@ -346,3 +346,4 @@ class UserProfileCollector {
 
 // 전역 사용자 프로필 수집기 인스턴스
 window.userProfileCollector = new UserProfileCollector();
+
