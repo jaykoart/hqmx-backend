@@ -628,7 +628,12 @@ const API_BASE_URL = window.location.hostname === 'localhost' ? 'http://localhos
         
         console.log('✅ ULTIMATE analysis completed:', data);
         return data;
+    } catch (ultimateError) {
+        console.error('❌ Ultimate analysis failed:', ultimateError);
+        showStatus('❌ 고급 분석 실패, 기본 분석으로 전환합니다...', 'error');
+        throw ultimateError;
     }
+}
 
     // --- 🎭 사용자 정보 활용 고급 분석 ---
     async function performUserMimicAnalysis(url) {

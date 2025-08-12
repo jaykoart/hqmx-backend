@@ -1,0 +1,64 @@
+# 🚀 DigitalOcean 서버 수동 업데이트 명령어
+# SSH 접속: ssh root@165.232.95.144
+
+# 1. 기존 프로세스 정리
+pm2 delete all
+pm2 kill
+lsof -ti:5001 | xargs kill -9 2>/dev/null || echo "No process on 5001"
+
+# 2. 최신 코드 다운로드
+cd /var/www
+rm -rf hqmx-new
+git clone https://github.com/jaykoart/hqmx-backend.git hqmx-new
+
+# 3. 환경 설정
+cd hqmx-new/backend
+cat > .env << 'EOF'
+NODE_ENV=production
+PORT=5001
+API_URL=https://api.hqmx.net
+CORS_ORIGIN="https://hqmx.net,https://www.hqmx.net"
+BROWSER_HEADLESS=true
+BROWSER_TIMEOUT=60000
+ENABLE_PROXY_ROTATION=true
+PROXY_ROTATION_STRATEGY=performance
+USE_PROXY_FOR_YOUTUBE=true
+ENABLE_ADVANCED_BYPASS=true
+USE_USER_PROFILE_MIMIC=true
+BYPASS_MAX_RETRIES=5
+BYPASS_TIMEOUT=45000
+ENABLE_STEALTH_MODE=true
+SIMULATE_HUMAN_BEHAVIOR=true
+RATE_LIMIT_MAX_REQUESTS=1000
+EOF
+
+# 4. 빌드 및 설치
+npm install --production
+npm run build
+
+# 5. 서비스 교체
+cd /var/www
+mv hqmx hqmx-old 2>/dev/null || echo "No old directory"
+mv hqmx-new hqmx
+
+# 6. 권한 설정
+chown -R www-data:www-data hqmx/frontend
+chmod -R 755 hqmx
+
+# 7. 서비스 시작
+cd hqmx/backend
+NODE_ENV=production PORT=5001 pm2 start dist/server.js --name hqmx-backend
+pm2 save
+
+# 8. 상태 확인
+pm2 status
+curl -s http://localhost:5001/health
+curl -s https://hqmx.net/api/health
+
+# 9. 고급 우회 API 테스트
+curl -s https://hqmx.net/api/user-mimic-analyze -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"url":"https://www.youtube.com/watch?v=jNQXAC9IVRw"}' \
+  --max-time 120
+
+echo "✅ 업데이트 완료!"
